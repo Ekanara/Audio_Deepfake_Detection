@@ -9,6 +9,13 @@ def get_args(input_args=None):
     """
     parser = argparse.ArgumentParser(description='Asuka: Inpainting with MAE conditional')
     parser.add_argument(
+        "--mode",
+        type=str,
+        default="efficientnet",
+       # required=True,
+        help="Choose model.",
+    )
+    parser.add_argument(
         "--pretrained_model_name_or_path",
         type=str,
         default="timbrooks/instruct-pix2pix",
@@ -78,6 +85,22 @@ def get_args(input_args=None):
         ),
     )
     parser.add_argument(
+        "--train_json_file",
+        type=str,
+        default=None,
+        help=(
+            "Json for read train label file"
+        ),
+    )
+    parser.add_argument(
+        "--val_json_file",
+        type=str,
+        default=None,
+        help=(
+            "Json for read val label file"
+        ),
+    )
+    parser.add_argument(
         "--image_column", type=str, default="image", help="The column of the dataset containing an image."
     )
     parser.add_argument(
@@ -107,6 +130,12 @@ def get_args(input_args=None):
             "Run fine-tuning validation every X epochs. The validation process consists of running the prompt"
             " `args.validation_prompt` multiple times: `args.num_validation_images`."
         ),
+    )
+    parser.add_argument(
+        "--embed_dim",
+        type=int,
+        default=527,
+        help="Number of images that should be generated during validation with `validation_prompt`.",
     )
     parser.add_argument(
         "--max_train_samples",
@@ -143,6 +172,7 @@ def get_args(input_args=None):
     )
     parser.add_argument("--seed", type=int, default=None, help="A seed for reproducible training.")
     parser.add_argument("--num_label", type=int, default=2, help="Number of label.")
+    parser.add_argument("--prev_num_label", type=int, default=2, help="Number of label at previous stage")
     parser.add_argument(
         "--resolution",
         type=int,
@@ -150,6 +180,78 @@ def get_args(input_args=None):
         help=(
             "The resolution for input images, all the images in the train/validation dataset will be resized to this"
             " resolution"
+        ),
+    )
+    parser.add_argument(
+        "--patch_size",
+        type=int,
+        default=4,
+        help=(
+            "The patch size when go over transformer"
+        ),
+    )
+    parser.add_argument(
+        "--dim",
+        type=int,
+        default=4,
+        help=(
+            "The transformer dim"
+        ),
+    )
+    parser.add_argument(
+        "--depth",
+        type=int,
+        default=4,
+        help=(
+            "The transformer depth"
+        ),
+    )
+    parser.add_argument(
+        "--dim_head",
+        type=int,
+        default=64,
+        help=(
+            "The transformer dim head"
+        ),
+    )
+    parser.add_argument(
+        "--heads",
+        type=int,
+        default=8,
+        help=(
+            "The transformer head"
+        ),
+    )
+    parser.add_argument(
+        "--mlp_dim",
+        type=int,
+        default=2048,
+        help=(
+            "The transformer mlp_dim"
+        ),
+    )
+    parser.add_argument(
+        "--emb_dim",
+        type=int,
+        default=4,
+        help=(
+            "The transformer embedding dim"
+        ),
+    )
+    parser.add_argument(
+        "--dropout",
+        type=float,
+        default=0.15,
+        help=(
+            "The transformer dropout"
+        ),
+    )
+    parser.add_argument(
+        "--emb_dropout",
+        type=float,
+        default=0.15,
+        help=(
+            "The transformer depth"
         ),
     )
     parser.add_argument(
@@ -291,7 +393,7 @@ def get_args(input_args=None):
         type=float,
         default=0.25,
         help=(
-            "The portion of timesteps to bias. Defaults to 0.25, which 25% of timesteps will be biased."
+            "The portion of timesteps to bias. Defaults to 0.25, which 25%% of timesteps will be biased."
             " A value of 0.5 will bias one half of the timesteps. The value provided for `--timestep_bias_strategy` determines"
             " whether the biased portions are in the earlier or later timesteps."
         ),
@@ -383,7 +485,10 @@ def get_args(input_args=None):
     parser.add_argument("--unet_onnx_device_ids", type=int, nargs="+", default=None, help="Device IDs for ONNX model.") # example: --unet_onnx_device_ids 0 1 2 3
     parser.add_argument("--wandb_run_name", type=str, default="Deepfake_detection", help="A name to identify the run in wandb")
     parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
+    parser.add_argument("--do_train_attention", action="store_true", help="Whether to run training.")
+
     parser.add_argument("--do_train_stage2", action="store_true", help="Whether to run training stage 2.")
+
     parser.add_argument("--do_eval", action="store_true", help="Whether to run evaluation.")
     parser.add_argument("--devices", nargs="+", default=[0], type=int, help="Device IDs for training.") # example: --device 0 1 2 3
     parser.add_argument("--accelerator", default="auto", help="cpu, gpu, tpu or auto")
@@ -392,6 +497,78 @@ def get_args(input_args=None):
     parser.add_argument("--mae_path", type=str, default="facebook/vit-mae-base", help="Path to MAE model.")
     parser.add_argument("--precision", type=str, default="bf16", help="Precision for training: fp32, bf16 or fp16.")
     parser.add_argument("--save_ckpt_path", type=str, default="sdxl-model-finetuned", help="Path to save checkpoint.")
+    parser.add_argument("--load_ckpt_path", type=str, default="None", help="Path to load checkpoint.")
+    parser.add_argument("--get_first_dim", action="store_true", help="Get first channels of data and duplicate into 3")
+    parser.add_argument("--mixup", action="store_true", help="Whether to MixUp")
+    parser.add_argument("--three_loss", action="store_true", help="Whether to run training.")
+    parser.add_argument(
+        "--beats_feature",
+        type=str,
+        default="predictor",
+        choices=["predictor", "encoder"],
+        help=(
+            "Where to tap BEATs in model_beat. 'predictor' (default) uses the 527-dim AudioSet "
+            "predictor output (preserves old checkpoints); 'encoder' uses the 768-dim encoder "
+            "hidden states one layer earlier."
+        ),
+    )
+    parser.add_argument(
+        "--ref_json_file",
+        type=str,
+        default=None,
+        help="JSON of real-only reference samples used to fit a reference P(real) distribution.",
+    )
+    parser.add_argument(
+        "--dist_threshold",
+        type=float,
+        default=0.1,
+        help="Distance threshold from the reference P(real) mean. |P(real) - mean| <= threshold → predict real.",
+    )
+    parser.add_argument(
+        "--use_ccl",
+        action="store_true",
+        help="Use the CCL pipeline (load_pipeline_and_ccl) and the CCL head's logits for distribution fitting.",
+    )
+    parser.add_argument(
+        "--auto_threshold",
+        type=str,
+        default="none",
+        choices=["none", "percentile", "chi2", "eer"],
+        help=(
+            "How to derive --dist_threshold. "
+            "'none': use --dist_threshold literally. "
+            "'percentile': pick the Nth percentile of reference Mahalanobis distances. "
+            "'chi2': sqrt(chi2.ppf(N/100, df=D)) — theoretical Gaussian containment. "
+            "'eer': sweep for the EER point (requires test labels)."
+        ),
+    )
+    parser.add_argument(
+        "--auto_threshold_pct",
+        type=float,
+        default=95.0,
+        help="Percentile / containment level used by --auto_threshold percentile and chi2.",
+    )
+
+    # ── Real-class weighting for training ─────────────────────────────
+    parser.add_argument(
+        "--ccl_real_w",
+        type=float,
+        default=4.0,
+        help="Real-class weight in CCL loss (default 4.0 = original).",
+    )
+    parser.add_argument(
+        "--ce_w",
+        type=float,
+        default=0.0,
+        help="Weight for cross-entropy loss added to 5-class training (0 = disabled).",
+    )
+    parser.add_argument(
+        "--ce_real_w",
+        type=float,
+        default=1.0,
+        help="Real-class weight in the cross-entropy loss (only used when --ce_w > 0).",
+    )
+
     if input_args is not None:
         args = parser.parse_args(input_args)
     else:
