@@ -10,17 +10,21 @@ Instead it fits a Gaussian on the embeddings of *fake training audio* and scores
 score(x) = -log p(x | N(mu_fake, Sigma_fake))     # high score = real, low score = fake
 ```
 
-This generalises across domains far better than scoring against a *real* reference, because the
-model packs every generator into one tight cluster while real audio scatters outside it —
-so "distance from fake" never depends on which real-audio domain the test set came from.
+This generalises across domains far better than scoring against a *real* reference: every generator
+lands somewhere inside a shared fake region of the embedding space, and real audio sits outside it.
+The Gaussian covers that whole region, so "distance from fake" never depends on which real-audio
+domain the test set happens to come from.
 
 <p align="center">
-  <img src="docs/tsne_fake_train_vs_test_track2.png" width="620"
-       alt="t-SNE: fake training embeddings, fake test embeddings and real test embeddings">
+  <img src="docs/tsne_envsdd_test.png" width="680"
+       alt="t-SNE of BEATs embeddings on the EnvSDD test subset, coloured by real and by generator">
 </p>
 
-*t-SNE of the 527-dim embeddings: fake test audio lands on top of the fake training cluster,
-while real test audio occupies its own region — exactly what the scoring function exploits.*
+*t-SNE of the embeddings on the EnvSDD test subset (BEATs fine-tune + multi-head). Real audio holds
+its own region on the left, each seen generator forms a distinct cluster, and generators never seen
+in training — ATA-Audioldm2, TTA-Audiolcm, TTA-Tangoflux, in grey — settle among the fake clusters
+rather than joining the real one. That is the property the scoring function relies on: you do not
+need to recognise which generator produced a clip, only that it is far from real and close to fake.*
 
 ---
 

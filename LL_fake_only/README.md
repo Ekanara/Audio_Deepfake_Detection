@@ -235,7 +235,7 @@ L = 0.2 × ArcFace + 0.8 × CCL + ce_w × CE
 
 ### Why -LL(fake) beats LL(real)
 
-The model packs all fake audio into a tight cluster; real audio lands far away. Distance from the fake cluster detects "fakeness" independent of the real audio's domain. LL(real) fails cross-domain: its real Gaussian is fitted on training real (TUT/UrbanSound8K), so test real (e.g. VGGSound in test_track2) falls outside it and gets misread as fake.
+The model keeps every generator inside a shared fake region of the embedding space — each one its own cluster, but all on the same side — while real audio lands far away. Distance from the fake cluster detects "fakeness" independent of the real audio's domain. LL(real) fails cross-domain: its real Gaussian is fitted on training real (TUT/UrbanSound8K), so test real (e.g. VGGSound in test_track2) falls outside it and gets misread as fake.
 
 ---
 
