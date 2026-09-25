@@ -1,0 +1,19 @@
+python src/base_trainer.py \
+    --devices 0  \
+    --do_train \
+    --save_weights_only \
+    --dataloader_num_workers 8 \
+    --num_label 2 \
+    --train_json_file "data/label/gam/TUTASC19_train.json" \
+    --val_json_file "data/label/gam/TUTASC19_test.json" \
+    --precision bf16 \
+    --train_batch_size 100 \
+    --mode vgg \
+    --learning_rate 5e-5 \
+    --num_train_epochs 20 \
+    --adam_weight_decay 0 \
+    --gradient_accumulation_steps 1 \
+    --load_ckpt_path "None" \
+    --save_ckpt_path "checkpoint/VGG16/VGG16_Gam_TUTASC19_bench" \
+    --output_dir "checkpoint/VGG16/VGG16_Gam_TUTASC19_bench/checkpoint" \
+    --wandb_run_name "VGG16_Gam_TUTASC19_bench"
