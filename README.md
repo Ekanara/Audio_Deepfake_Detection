@@ -16,15 +16,16 @@ The Gaussian covers that whole region, so "distance from fake" never depends on 
 domain the test set happens to come from.
 
 <p align="center">
-  <img src="docs/tsne_envsdd_test.png" width="680"
+  <img src="docs/tsne_envsdd_test.png" width="720"
        alt="t-SNE of BEATs embeddings on the EnvSDD test subset, coloured by real and by generator">
 </p>
 
-*t-SNE of the embeddings on the EnvSDD test subset (BEATs fine-tune + multi-head). Real audio holds
-its own region on the left, each seen generator forms a distinct cluster, and generators never seen
-in training — ATA-Audioldm2, TTA-Audiolcm, TTA-Tangoflux, in grey — settle among the fake clusters
-rather than joining the real one. That is the property the scoring function relies on: you do not
-need to recognise which generator produced a clip, only that it is far from real and close to fake.*
+*t-SNE of the embeddings on the EnvSDD test subset (TUTASC19 split, BEATs fine-tune + multi-head).
+Real audio holds its own region on the left, each seen generator forms a distinct cluster, and
+generators never seen in training — ATA-Audioldm2, TTA-Audiolcm, TTA-Tangoflux, in grey — settle
+among the fake clusters rather than joining the real one. That is the property the scoring function
+relies on: you do not need to recognise which generator produced a clip, only that it is far from
+real and close to fake. Regenerate with `scripts/tsne_khoi.py`.*
 
 ---
 
